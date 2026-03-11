@@ -32,14 +32,15 @@ pi/
 ## 安装
 
 ```bash
-# 在项目根目录使用共享虚拟环境
+# 在项目根目录使用虚拟环境
 cd /path/to/pi_hub_openclaw_prj
 
-# 如果没有 venv，执行：
-# python3 -m venv venv
-# pip install requests pyyaml
+# 如果没有 uv，执行：
+# curl -LsSf https://astral.sh/uv/install.sh | sh
+# uv venv
+# uv pip install requests pyyaml
 
-source venv/bin/activate
+source .venv/bin/activate
 
 # Pi 只需要 requests 和 pyyaml
 # (pyaudio 仅在真实树莓派上需要)
@@ -74,7 +75,7 @@ tencentcloud:
 ## 测试
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 python3 pi/test/test_pi.py
 python3 pi/test/test_tts_asr.py
 ```
@@ -82,7 +83,7 @@ python3 pi/test/test_tts_asr.py
 ## 运行
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 python3 pi/main.py
 ```
 

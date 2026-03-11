@@ -87,15 +87,18 @@ sudo redis-server --daemonize yes
 ### 2. 安装依赖
 
 ```bash
-# 创建共享虚拟环境
-python3 -m venv venv
-source venv/bin/activate
+# 安装 uv (如果未安装)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 创建虚拟环境 + 安装依赖
+uv venv
+source .venv/bin/activate
 
 # 安装 HUB 依赖
-pip install -r hub/requirements.txt
+uv pip install -r hub/requirements.txt
 
 # 安装 Pi 依赖 (可选，服务器上不需要 pyaudio)
-pip install requests pyyaml
+uv pip install requests pyyaml
 ```
 
 ### 3. 配置 HUB
@@ -124,7 +127,7 @@ security:
 ### 4. 启动 HUB 服务
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 python3 hub/main.py
 ```
 
@@ -144,7 +147,7 @@ curl http://localhost:8443/health
 ### 运行测试脚本
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 
 # HUB 测试
 python3 hub/test/test_hub.py

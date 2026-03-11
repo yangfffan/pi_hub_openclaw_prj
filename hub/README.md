@@ -22,16 +22,17 @@ hub/
 ## 安装
 
 ```bash
-# 在项目根目录创建共享虚拟环境
+# 在项目根目录创建虚拟环境
 cd /path/to/pi_hub_openclaw_prj
 
-# 如果没有 venv，执行：
-# python3 -m venv venv
+# 如果没有 uv，执行：
+# curl -LsSf https://astral.sh/uv/install.sh | sh
 
-source venv/bin/activate
+uv venv
+source .venv/bin/activate
 
 # 安装依赖
-pip install -r hub/requirements.txt
+uv pip install -r hub/requirements.txt
 ```
 
 ## 配置
@@ -60,14 +61,14 @@ security:
 ## 启动
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 python3 hub/main.py
 ```
 
 ## 测试
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 python3 hub/test/test_hub.py
 ```
 
