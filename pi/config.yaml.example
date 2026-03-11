@@ -1,0 +1,22 @@
+# 树莓派客户端配置
+
+server:
+  url: "http://localhost:8443"  # HUB 服务器地址
+  verify_ssl: true
+
+device:
+  token: "请替换为你的token"  # 与 HUB 配置的 token 一致
+  device_id: "pi_living_room"
+
+audio:
+  sample_rate: 16000  # 采样率
+  channels: 1  # 声道数
+  format: "wav"  # 音频格式
+
+poll:
+  interval: 2  # 轮询间隔（秒）
+
+# 腾讯云配置
+tencentcloud:
+  secret_id: "请替换为你的secret_id"
+  secret_key: "请替换为你的secret_key"

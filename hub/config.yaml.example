@@ -1,0 +1,18 @@
+server:
+  host: "0.0.0.0"
+  port: 8443
+  ssl:
+    enabled: false  # 开发环境设为 false
+    cert: "/path/to/cert.pem"
+    key: "/path/to/key.pem"
+
+openclaw:
+  gateway_url: "http://localhost:18789"
+  agent_id: "main"
+  poll_interval: 1  # 秒
+
+redis:
+  url: "redis://localhost:6379/0"
+
+security:
+  token: "请替换为你的token"
