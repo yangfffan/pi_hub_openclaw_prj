@@ -17,6 +17,8 @@ from http_client import get_http_client
 from recorder import Recorder
 from player import Player
 from tts import TTSService
+from asr import ASRService
+from wake import WakeWordDetector
 
 # 配置日志
 logging.basicConfig(
@@ -44,6 +46,12 @@ class PiClient:
             self.config.tencentcloud_secret_id,
             self.config.tencentcloud_secret_key
         )
+        self.asr = ASRService(
+            self.config.tencentcloud_secret_id,
+            self.config.tencentcloud_secret_key
+        )
+        # 使用 Picovoice 唤醒词检测
+        self.wake_detector = WakeWordDetector(sensitivity=0.7)
 
         self._running = False
         self._poll_thread = None
@@ -97,8 +105,12 @@ class PiClient:
         """播放 TTS"""
         logger.info(f"TTS 转换: {text[:50]}...")
 
-        # 调用 TTS 服务
-        result = self.tts.synthesize(text)
+        # 调用 TTS 服务，使用配置中的参数
+        result = self.tts.synthesize(
+            text,
+            codec=self.config.tts_codec,
+            sample_rate=self.config.tts_sample_rate
+        )
 
         if result.get("success"):
             audio_data = base64.b64decode(result["audio"])
@@ -130,19 +142,25 @@ class PiClient:
         """主循环"""
         logger.info("主循环启动，等待唤醒词...")
 
-        # TODO: 实现唤醒词检测
-        # 目前使用模拟方式：按回车键触发录音
-        # 后续实现 Porcupine 唤醒词检测
+        # 启动唤醒词检测
+        # 如果 Porcupine 不可用，会使用简单模式
+        # 可以通过设置 PICOVOICE_ACCESS_KEY 环境变量启用真正的唤醒词
+        self.wake_detector.start(callback=self._handle_wake)
 
         while self._running:
-            logger.info("等待唤醒词 (按回车键模拟)...")
-            input()
+            # 使用简单能量检测时，回调会自动触发
+            # 这里主线程可以做一些其他事情
+            import os
+            # 检查是否有退出信号文件
+            if os.path.exists("/tmp/pi_client_stop"):
+                logger.info("检测到停止信号")
+                break
+            time.sleep(1)
 
-            # 唤醒后的流程
-            self._handle_wake()
+        self.wake_detector.stop()
 
     def _handle_wake(self):
-        """处理唤醒"""
+        """处理唤醒（回调函数）"""
         logger.info("========== 唤醒流程开始 ==========")
 
         # 1. 播放 "在呢" 音效
@@ -161,34 +179,39 @@ class PiClient:
         logger.info("3. 播放: 听到啦")
         self.play_sound("heard")
 
-        # 4. 保存录音用于调试
-        debug_file = "/tmp/recording.wav"
-        with open(debug_file, "wb") as f:
-            f.write(audio_data)
-        logger.info(f"录音已保存: {debug_file}")
+        # 4. ASR 语音识别
+        logger.info("4. ASR 语音识别...")
+        try:
+            asr_result = self.asr.recognize_from_data(audio_data)
 
-        # 5. TODO: ASR 语音识别
-        # 由于 ASR 需要真实的音频文件 URL，这里暂时跳过
-        # 后续实现从文件识别
-        logger.info("4. ASR 语音识别 (暂跳过)")
+            if asr_result.get("success"):
+                text = asr_result.get("text", "")
+                logger.info(f"识别结果: {text}")
 
-        # 模拟 ASR 结果
-        text = input("请输入模拟的识别结果 (直接回车跳过): ").strip()
-        if not text:
-            text = "你好，这是一个测试消息"
+                # 添加提示语，让LLM回复适合语音播放
+                voice_hint = "（本消息通过语音设备发送，请回复也适合语音播放，仅用自然语言文字消息，不要包含列表或链接等难以被语音播放理解的内容）"
+                text = text + voice_hint
+                logger.info(f"添加提示后: {text}")
+            else:
+                # ASR 失败，使用默认消息
+                logger.error(f"ASR 失败: {asr_result.get('error')}")
+                text = "你好"
+        except Exception as e:
+            logger.error(f"ASR 异常: {e}")
+            text = "你好"
 
-        # 6. 播放 "懂啦" 音效
+        # 5. 播放 "懂啦" 音效
         logger.info("5. 播放: 懂啦")
         self.play_sound("understood")
 
-        # 7. 发送到 HUB
+        # 6. 发送到 HUB
         logger.info("6. 发送到 HUB...")
         result = self.http_client.upload_message(text)
 
         if result.get("success"):
             logger.info(f"消息已发送: {result.get('message_id')}")
 
-            # 8. 播放 "我想一下" 音效
+            # 7. 播放 "我想一下" 音效
             logger.info("7. 播放: 我想一下")
             self.play_sound("thinking")
         else:
@@ -200,6 +223,9 @@ class PiClient:
         """停止客户端"""
         logger.info("停止客户端...")
         self._running = False
+
+        # 停止唤醒检测
+        self.wake_detector.stop()
 
         if self._poll_thread:
             self._poll_thread.join(timeout=5)

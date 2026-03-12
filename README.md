@@ -43,7 +43,14 @@ pi_hub_openclaw_prj/
 │   ├── player.py             # 播放模块
 │   ├── tts.py                # 腾讯云 TTS
 │   ├── asr.py                # 腾讯云 ASR
+│   ├── wake.py               # Picovoice 唤醒词模块
 │   ├── assets/               # 本地音效文件
+│   │   ├── zaine.wav         # 在呢
+│   │   ├── heard.wav         # 听到啦
+│   │   ├── understood.wav    # 听懂啦
+│   │   ├── thinking.wav      # 我想一下
+│   │   ├── ok.wav            # 想好啦
+│   │   └── xiaoke_zh_raspberry-pi_v4_0_0.ppn  # Picovoice唤醒词模型
 │   ├── test/
 │   │   ├── test_pi.py       # 测试脚本
 │   │   └── test_tts_asr.py  # TTS→ASR 往返测试
@@ -66,6 +73,7 @@ pi_hub_openclaw_prj/
 - Redis
 - OpenClaw (已安装并配置 API Key)
 - 网络可访问 OpenClaw Gateway (localhost:18789)
+- uv (Python 包管理工具)
 
 ### 树莓派端
 
@@ -73,8 +81,16 @@ pi_hub_openclaw_prj/
 - Raspberry Pi OS
 - USB 麦克风
 - USB 音箱
+- uv (Python 包管理工具)
 
 ## 安装步骤
+
+### 0. 安装 uv
+
+```bash
+# 安装 uv (如果未安装)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ### 1. 安装 Redis
 
@@ -308,6 +324,34 @@ lsof -i :8443
 
 # 杀死进程
 kill <PID>
+```
+
+## 部署到树莓派
+
+### 代码同步
+
+服务器修改代码后，使用 scp 同步到树莓派：
+
+```bash
+# 同步 pi 文件夹
+scp -r pi/ pi@<pi-ip>:/home/pi/work/pi_hub_openclaw_prj/
+
+# 同步配置文件
+scp pi/config.yaml pi@<pi-ip>:/home/pi/work/pi_hub_openclaw_prj/pi/
+```
+
+### 树莓派运行
+
+```bash
+# SSH 到树莓派
+ssh pi@<pi-ip>
+
+# 激活虚拟环境
+cd /home/pi/work/pi_hub_openclaw_prj
+source .venv/bin/activate
+
+# 运行程序
+python3 pi/main.py
 ```
 
 ## 相关文档

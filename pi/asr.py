@@ -17,59 +17,80 @@ class ASRService:
         self.endpoint = "asr.tencentcloudapi.com"
         self.action = "SentenceRecognition"
         self.version = "2019-06-14"
-        self.region = ""  # ASR 不需要 region
 
-    def _sign_v1(self, string_to_sign: str) -> str:
-        """V1 签名"""
-        return base64.b64encode(
-            hmac.new(
-                self.secret_key.encode("utf-8"),
-                string_to_sign.encode("utf-8"),
-                hashlib.sha1
-            ).digest()
-        ).decode("utf-8")
+    def _sign_v3(self, secret_key, timestamp, date, endpoint, action, version, params):
+        """V3 签名"""
+
+        # 1. CanonicalURI
+        canonical_uri = "/"
+
+        # 2. CanonicalQueryString
+        canonical_query_string = ""
+
+        # 3. CanonicalHeaders
+        canonical_headers = "content-type:application/json\nhost:asr.tencentcloudapi.com\n"
+
+        # 4. SignedHeaders
+        signed_headers = "content-type;host"
+
+        # 5. HashedRequestPayload
+        payload = json.dumps(params)
+        hashed_payload = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+        # 6. CanonicalRequest
+        http_method = "POST"
+        canonical_request = f"{http_method}\n{canonical_uri}\n{canonical_query_string}\n{canonical_headers}\n{signed_headers}\n{hashed_payload}"
+
+        # 7. StringToSign
+        algorithm = "TC3-HMAC-SHA256"
+        credential_scope = f"{date}/asr/tc3_request"
+        hashed_canonical_request = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
+        string_to_sign = f"{algorithm}\n{timestamp}\n{credential_scope}\n{hashed_canonical_request}"
+
+        # 8. 计算签名
+        def hmac_sha256(key, msg):
+            if isinstance(key, bytes):
+                return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+            return hmac.new(key.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).digest()
+
+        secret_date = hmac_sha256("TC3" + secret_key, date)
+        secret_service = hmac_sha256(secret_date, "asr")
+        secret_signing = hmac_sha256(secret_service, "tc3_request")
+        signature = hmac_sha256(secret_signing, string_to_sign).hex()
+
+        # 9. Authorization
+        authorization = f"TC3-HMAC-SHA256 Credential={self.secret_id}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+
+        return authorization
 
     def recognize_from_url(self, url: str, engine_type: str = "16k_zh",
                           voice_format: str = "wav") -> dict:
-        """
-        通过 URL 识别语音
-
-        Args:
-            url: 语音文件的 URL 地址
-            engine_type: 引擎类型，如 16k_zh, 16k_en 等
-            voice_format: 音频格式，如 wav, pcm, mp3 等
-
-        Returns:
-            识别结果字典
-        """
+        """通过 URL 识别语音"""
         timestamp = str(int(time.time()))
-        nonce = "123456"
+        date = time.strftime("%Y-%m-%d", time.localtime(int(timestamp)))
 
-        # 构造请求参数
         params = {
-            "Action": self.action,
-            "Version": self.version,
-            "Nonce": nonce,
-            "SecretId": self.secret_id,
-            "Timestamp": timestamp,
-            "SignatureMethod": "HmacSHA1",
             "EngSerViceType": engine_type,
-            "SourceType": "0",  # 0 = URL
+            "SourceType": 0,
             "VoiceFormat": voice_format,
             "Url": url
         }
 
-        # 排序并签名
-        sorted_params = sorted(params.items())
-        canonical_query_string = "&".join([f"{k}={v}" for k, v in sorted_params])
-        string_to_sign = f"GET{self.endpoint}/?{canonical_query_string}"
+        authorization = self._sign_v3(self.secret_key, timestamp, date, self.endpoint, self.action, self.version, params)
 
-        params["Signature"] = self._sign_v1(string_to_sign)
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": authorization,
+            "X-TC-Action": self.action,
+            "X-TC-Version": self.version,
+            "X-TC-Timestamp": timestamp
+        }
 
         try:
-            resp = requests.get(
+            resp = requests.post(
                 f"https://{self.endpoint}/",
-                params=params,
+                data=json.dumps(params),
+                headers=headers,
                 timeout=30
             )
             result = resp.json()
@@ -93,55 +114,43 @@ class ASRService:
 
     def recognize_from_data(self, audio_data: bytes, engine_type: str = "16k_zh",
                             voice_format: str = "wav") -> dict:
-        """
-        通过音频数据识别语音
-
-        Args:
-            audio_data: 音频二进制数据
-            engine_type: 引擎类型
-            voice_format: 音频格式
-
-        Returns:
-            识别结果字典
-        """
+        """通过音频数据识别语音"""
         # 将音频数据转为 Base64
-        # audio_data 可能是 str(Base64) 或 bytes，需要统一处理
         if isinstance(audio_data, str):
-            # 如果是 Base64 字符串，先解码再重新编码
             audio_bytes = base64.b64decode(audio_data)
         else:
             audio_bytes = audio_data
+
         audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
         data_len = len(audio_bytes)
 
         timestamp = str(int(time.time()))
-        nonce = "123456"
+        date = time.strftime("%Y-%m-%d", time.localtime(int(timestamp)))
 
         params = {
-            "Action": self.action,
-            "Version": self.version,
-            "Nonce": nonce,
-            "SecretId": self.secret_id,
-            "Timestamp": timestamp,
-            "SignatureMethod": "HmacSHA1",
             "EngSerViceType": engine_type,
-            "SourceType": "1",  # 1 = 语音数据
+            "SourceType": 1,
             "VoiceFormat": voice_format,
             "Data": audio_base64,
             "DataLen": data_len
         }
 
-        sorted_params = sorted(params.items())
-        canonical_query_string = "&".join([f"{k}={v}" for k, v in sorted_params])
-        string_to_sign = f"GET{self.endpoint}/?{canonical_query_string}"
+        authorization = self._sign_v3(self.secret_key, timestamp, date, self.endpoint, self.action, self.version, params)
 
-        params["Signature"] = self._sign_v1(string_to_sign)
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": authorization,
+            "X-TC-Action": self.action,
+            "X-TC-Version": self.version,
+            "X-TC-Timestamp": timestamp
+        }
 
         try:
-            resp = requests.get(
+            resp = requests.post(
                 f"https://{self.endpoint}/",
-                params=params,
-                timeout=30
+                data=json.dumps(params),
+                headers=headers,
+                timeout=60
             )
             result = resp.json()
 

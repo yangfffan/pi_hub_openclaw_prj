@@ -79,6 +79,10 @@ class Config:
     def tts_sample_rate(self) -> int:
         return self._config.get("tencentcloud", {}).get("tts", {}).get("sample_rate", 16000)
 
+    @property
+    def picovoice_access_key(self) -> str:
+        return self._config.get("picovoice", {}).get("access_key", "")
+
 
 @lru_cache()
 def get_config() -> Config:

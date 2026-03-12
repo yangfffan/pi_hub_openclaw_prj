@@ -4,9 +4,9 @@
 根据 config.yaml 中的 TTS 配置，生成以下音效文件：
 - zaine.wav     ("在呢")
 - heard.wav     ("听到啦")
-- understood.wav ("懂啦")
+- understood.wav ("听懂啦")
 - thinking.wav  ("我想一下")
-- ok.wav        ("想好啦")
+- ok.wav        ("想到啦")
 
 用法:
     python gen_assets.py
@@ -25,9 +25,9 @@ from tts import TTSService
 ASSETS = [
     ("在呢", "zaine.wav"),
     ("听到啦", "heard.wav"),
-    ("懂啦", "understood.wav"),
+    ("听懂啦", "understood.wav"),
     ("我想一下", "thinking.wav"),
-    ("想好啦", "ok.wav"),
+    ("想到啦", "ok.wav"),
 ]
 
 

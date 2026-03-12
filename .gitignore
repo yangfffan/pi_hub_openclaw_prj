@@ -36,3 +36,9 @@ doc/api_keys_local.md
 # 树莓派 assets（测试用音效文件）
 !pi/assets/
 !pi/assets/*.wav
+
+# 测试文件（可能包含敏感信息）
+test_asr_doc.py
+pi/test/test_audio.py
+pi/test/test_picovoice.py
+pi/test/test_pocketsphinx.py

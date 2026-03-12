@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 SILENCE_THRESHOLD = 500  # 静音阈值
-SILENCE_DURATION = 1.5  # 静音持续多少秒认为录音结束
+SILENCE_DURATION = 5.0  # 静音持续5秒认为录音结束
 
 
 class Recorder:

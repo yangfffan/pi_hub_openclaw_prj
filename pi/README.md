@@ -13,6 +13,7 @@ pi/
 ├── player.py            # 播放模块
 ├── tts.py               # 腾讯云 TTS
 ├── asr.py               # 腾讯云 ASR
+├── wake.py              # 语音唤醒模块
 ├── config.yaml          # 配置文件
 ├── assets/              # 本地音效文件
 │   ├── zaine.wav       # 在呢
@@ -22,7 +23,8 @@ pi/
 │   └── ok.wav         # 想好啦
 ├── test/
 │   ├── test_pi.py     # 测试脚本
-│   └── test_tts_asr.py # TTS→ASR 往返测试
+│   ├── test_tts_asr.py # TTS→ASR 往返测试
+│   └── test_audio.py  # 录音播放测试
 └── requirements.txt    # Python 依赖
 ```
 
@@ -67,9 +69,19 @@ audio:
 poll:
   interval: 2
 
+# Picovoice 唤醒词配置
+picovoice:
+  access_key: "your-picovoice-access-key"
+
 tencentcloud:
   secret_id: "your-secret-id"
   secret_key: "your-secret-key"
+  tts:
+    voice_type: 101001
+    speed: 0
+    volume: 0
+    codec: "wav"
+    sample_rate: 16000
 ```
 
 ## 测试
@@ -100,17 +112,41 @@ python3 pi/main.py
 |--------|------|
 | zaine.wav | 唤醒响应 "在呢" |
 | heard.wav | 录音结束 "听到啦" |
-| understood.wav | ASR完成 "懂啦" |
+| understood.wav | ASR完成 "听懂啦" |
 | thinking.wav | 发送消息 "我想一下" |
 | ok.wav | 收到回复 "想好啦" |
+
+唤醒词文件：`assets/xiaoke_zh_raspberry-pi_v4_0_0.ppn
 
 ## 模块说明
 
 - **tts.py**: 腾讯云语音合成
-- **asr.py**: 腾讯云语音识别
-- **recorder.py**: 录音功能 (pyaudio)
+- **asr.py**: 腾讯云语音识别（V3 签名）
+- **recorder.py**: 录音功能 (pyaudio)，支持 5 秒静音检测
 - **player.py**: 播放功能 (pyaudio)
 - **http_client.py**: 与 HUB 通信
+- **wake.py**: 语音唤醒模块（Picovoice "小克" 唤醒词检测）
+- **main.py**: 主程序（集成所有模块）
+
+## 唤醒词流程
+
+程序启动后会：
+1. 连接到 HUB 服务器
+2. 启动轮询线程监听回复
+3. 启动唤醒词检测（音量检测 → Picovoice 唤醒词检测）
+
+完整语音交互流程：
+1. 音量检测：检测到声音大于阈值时进入唤醒词检测
+2. 唤醒词检测：检测到"小克"后触发
+3. 播放音效 "在呢"
+4. 开始录音（最长 30 秒，5 秒静音自动停止）
+5. 播放音效 "听到啦"
+6. ASR 语音识别
+7. 发送消息到 HUB
+8. 播放音效 "我想一下"
+9. 轮询等待回复
+10. 收到回复后播放音效 "想好啦"
+11. TTS 语音合成并播放
 
 ## TTS 配置说明
 
@@ -136,7 +172,7 @@ tencentcloud:
 | voice_type | int | - | 101001 | 音色ID |
 | speed | float | [-2, 6] | 0 | 语速 (0=1.0倍) |
 | volume | float | [-10, 10] | 0 | 音量 |
-| codec | string | mp3/wav/pcm | mp3 | 音频格式 |
+| codec | string | mp3/wav/pcm | wav | 音频格式（树莓派推荐 wav） |
 | sample_rate | int | 8000/16000/24000 | 16000 | 采样率 |
 
 ### 常见音色 ID
