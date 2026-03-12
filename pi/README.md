@@ -111,3 +111,50 @@ python3 pi/main.py
 - **recorder.py**: 录音功能 (pyaudio)
 - **player.py**: 播放功能 (pyaudio)
 - **http_client.py**: 与 HUB 通信
+
+## TTS 配置说明
+
+在 `config.yaml` 中配置 TTS 参数：
+
+```yaml
+tencentcloud:
+  secret_id: "你的secret_id"
+  secret_key: "你的secret_key"
+
+  tts:
+    voice_type: 101001  # 音色类型
+    speed: 0            # 语速 [-2, 6]
+    volume: 0           # 音量 [-10, 10]
+    codec: "mp3"         # 音频格式
+    sample_rate: 16000  # 采样率
+```
+
+### 可选参数
+
+| 参数 | 类型 | 范围 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| voice_type | int | - | 101001 | 音色ID |
+| speed | float | [-2, 6] | 0 | 语速 (0=1.0倍) |
+| volume | float | [-10, 10] | 0 | 音量 |
+| codec | string | mp3/wav/pcm | mp3 | 音频格式 |
+| sample_rate | int | 8000/16000/24000 | 16000 | 采样率 |
+
+### 常见音色 ID
+
+| voice_type | 名称 |
+|------------|------|
+| 0 | 青年男声 |
+| 1 | 青年女声 |
+| 5 | 成熟男声 |
+| 101001 | 情感女声（度小美）|
+
+### 语速参考
+
+| speed 值 | 倍数 |
+|----------|------|
+| -2 | 0.6倍 |
+| -1 | 0.8倍 |
+| 0 | 1.0倍 |
+| 1 | 1.2倍 |
+| 2 | 1.5倍 |
+| 6 | 2.5倍 |

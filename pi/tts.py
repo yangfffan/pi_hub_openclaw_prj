@@ -29,7 +29,8 @@ class TTSService:
         ).decode("utf-8")
 
     def synthesize(self, text: str, voice_type: int = 101001,
-                   codec: str = "mp3", sample_rate: int = 16000) -> dict:
+                   codec: str = "mp3", sample_rate: int = 16000,
+                   speed: float = 0, volume: float = 0) -> dict:
         """
         合成语音
 
@@ -38,6 +39,8 @@ class TTSService:
             voice_type: 音色类型 (默认 101001)
             codec: 音频格式 (mp3, wav, pcm)
             sample_rate: 采样率 (8000, 16000)
+            speed: 语速 [-2, 6], 默认 0 (1.0倍)
+            volume: 音量 [-10, 10], 默认 0
 
         Returns:
             包含音频数据的字典
@@ -56,7 +59,9 @@ class TTSService:
             "Text": text,
             "VoiceType": str(voice_type),
             "Codec": codec,
-            "SampleRate": str(sample_rate)
+            "SampleRate": str(sample_rate),
+            "Speed": str(speed),
+            "Volume": str(volume)
         }
 
         # 排序并签名
@@ -95,7 +100,9 @@ class TTSService:
     def synthesize_to_file(self, text: str, output_path: str,
                          voice_type: int = 101001,
                          codec: str = "mp3",
-                         sample_rate: int = 16000) -> bool:
+                         sample_rate: int = 16000,
+                         speed: float = 0,
+                         volume: float = 0) -> bool:
         """
         合成语音并保存到文件
 
@@ -105,11 +112,13 @@ class TTSService:
             voice_type: 音色类型
             codec: 音频格式
             sample_rate: 采样率
+            speed: 语速 [-2, 6]
+            volume: 音量 [-10, 10]
 
         Returns:
             是否成功
         """
-        result = self.synthesize(text, voice_type, codec, sample_rate)
+        result = self.synthesize(text, voice_type, codec, sample_rate, speed, volume)
 
         if result.get("success"):
             audio_data = base64.b64decode(result["audio"])

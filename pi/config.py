@@ -59,6 +59,26 @@ class Config:
     def tencentcloud_secret_key(self) -> str:
         return self._config.get("tencentcloud", {}).get("secret_key", "")
 
+    @property
+    def tts_voice_type(self) -> int:
+        return self._config.get("tencentcloud", {}).get("tts", {}).get("voice_type", 101001)
+
+    @property
+    def tts_speed(self) -> float:
+        return self._config.get("tencentcloud", {}).get("tts", {}).get("speed", 0)
+
+    @property
+    def tts_volume(self) -> float:
+        return self._config.get("tencentcloud", {}).get("tts", {}).get("volume", 0)
+
+    @property
+    def tts_codec(self) -> str:
+        return self._config.get("tencentcloud", {}).get("tts", {}).get("codec", "mp3")
+
+    @property
+    def tts_sample_rate(self) -> int:
+        return self._config.get("tencentcloud", {}).get("tts", {}).get("sample_rate", 16000)
+
 
 @lru_cache()
 def get_config() -> Config:
